@@ -14,15 +14,9 @@ from prometheus_client.core import REGISTRY
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mlflow_exporter")
 
-MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
-MLFLOW_TRACKING_TOKEN = os.environ.get("GITHUB_API")
+
 REFRESH_INTERVAL = int(os.environ.get("REFRESH_INTERVAL", "60"))
 EXPORTER_PORT = int(os.environ.get("EXPORTER_PORT", "8000"))
-
-# If token provided, set mlflow basic auth env variables used by mlflow HTTP client
-if MLFLOW_TRACKING_TOKEN and "MLFLOW_TRACKING_USERNAME" not in os.environ:
-    os.environ["MLFLOW_TRACKING_USERNAME"] = "oauth2"
-    os.environ["MLFLOW_TRACKING_PASSWORD"] = MLFLOW_TRACKING_TOKEN
 
 # Metric registry and a general-purpose gauge
 # We use a single gauge with labels so Prometheus can filter by metric name
@@ -45,9 +39,18 @@ def collect_all_metrics(client: MlflowClient):
     Fetch all experiments -> all runs -> all numeric metrics
     and update Prometheus gauges.
     """
-    logger.info("Fetching experiments from MLflow at: %s", MLFLOW_TRACKING_URI)
+    logger.info("Fetching experiments from MLflow at: %s", client.tracking_uri)
     try:
-        experiments = client.list_experiments()  # returns Experiment objects
+        # Newer/older MLflow client versions expose different helpers.
+        # Prefer `list_experiments` when present, otherwise fall back to `search_experiments`.
+        if hasattr(client, "list_experiments"):
+            experiments = client.list_experiments()
+        elif hasattr(client, "search_experiments"):
+            # search_experiments accepts a filter_string; return all with empty filter
+            experiments = client.search_experiments(filter_string="", max_results=10000)
+        else:
+            logger.error("MlflowClient has no method to list or search experiments")
+            return
     except Exception as e:
         logger.exception("Failed to list experiments: %s", e)
         return
@@ -101,7 +104,7 @@ def main():
     start_http_server(EXPORTER_PORT)
     logger.info("Exporter listening on :%d/metrics", EXPORTER_PORT)
 
-    client = MlflowClient(tracking_uri=MLFLOW_TRACKING_URI)
+    client = MlflowClient()
 
     # initial collect
     while True:

@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  exporter:
+    build: ./exporter
+    environment:
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-}
+      - MLFLOW_TRACKING_TOKEN=${MLFLOW_TRACKING_TOKEN:-}
+      - REFRESH_INTERVAL=60
+      - EXPORTER_PORT=8000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      - exporter
+
+  grafana:
+    image: grafana/grafana:latest
+    user: "472" # grafana user
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      # optional: persist grafana data to ./grafana
+      - grafana-storage:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana-storage:

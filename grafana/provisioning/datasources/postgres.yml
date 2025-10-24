@@ -1,0 +1,17 @@
+apiVersion: 1
+datasources:
+  - name: PostgresMLflow
+    uid: PABD73A149C560C85
+    type: grafana-postgresql-datasource
+    access: proxy
+    isDefault: true
+    url: db:5432
+    database: mlflow
+    user: mlflow
+    secureJsonData:
+      password: mlflow
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 2
+      version: 1

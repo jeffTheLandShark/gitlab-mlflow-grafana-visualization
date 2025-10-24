@@ -1,25 +1,20 @@
-version: "3.8"
 services:
   exporter:
     build: ./exporter
     environment:
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-}
       - MLFLOW_TRACKING_TOKEN=${MLFLOW_TRACKING_TOKEN:-}
+      - DATABASE_URL=${DATABASE_URL:-}
       - REFRESH_INTERVAL=60
       - EXPORTER_PORT=8000
     ports:
       - "8000:8000"
     restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
-    restart: unless-stopped
     depends_on:
-      - exporter
+      - db
+
+  # Prometheus removed (not needed). If you want it back, restore the
+  # `prometheus` service and the `prometheus/` folder with a prometheus.yml.
 
   grafana:
     image: grafana/grafana:latest
@@ -31,9 +26,25 @@ services:
     volumes:
       # optional: persist grafana data to ./grafana
       - grafana-storage:/var/lib/grafana
+      # provisioning and dashboards (automatically configure Prometheus datasource)
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     restart: unless-stopped
-    depends_on:
-      - prometheus
+    # no external prometheus dependency
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=mlflow
+      - POSTGRES_PASSWORD=mlflow
+      - POSTGRES_DB=mlflow
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./timescaledb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
 
 volumes:
   grafana-storage:
+  db-data:

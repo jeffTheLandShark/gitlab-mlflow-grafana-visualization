@@ -30,32 +30,57 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": ["precision", "recall", "f1", "avg_iou"],
-                "prefix": "All except:",
-                "readOnly": true
-              }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             },
-            "properties": [
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": true,
-                  "viz": true
-                }
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
           }
-        ]
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 12,
@@ -78,15 +103,44 @@
         }
       },
       "pluginVersion": "12.2.0",
-      "repeat": "experiment",
       "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT r.id AS run_id, m.name AS metric, m.value AS value\n-- p.name AS param_name, p.value AS param_value,\nFROM runs r\nINNER JOIN metrics m ON m.run_id = r.id\nINNER JOIN experiments e ON e.id = r.experiment_id\n-- INNER JOIN params p ON p.run_id = r.id\nWHERE e.name = '$experiment'\nORDER BY r.id, m.name",
+          "rawSql": "SELECT DISTINCT r.id AS run_id, e.name as experiment\nFROM runs r\nINNER JOIN experiments e ON e.id = r.experiment_id\nORDER BY r.id",
           "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "mlflow",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PABD73A149C560C85"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT m.run_id as run_id, m.name AS metric, m.value AS value\r\nFROM metrics m\r\nORDER BY m.run_id",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -109,6 +163,31 @@
       "title": "Metrics by run (categorical)",
       "transformations": [
         {
+          "id": "joinByField",
+          "options": {
+            "byField": "run_id",
+            "mode": "outerTabular"
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "${experiment}"
+                  }
+                },
+                "fieldName": "experiment"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
           "id": "groupingToMatrix",
           "options": {
             "columnField": "metric",
@@ -117,6 +196,7 @@
           }
         },
         {
+          "disabled": true,
           "id": "calculateField",
           "options": {
             "alias": "initial",
@@ -216,19 +296,6 @@
               "reducer": "sum"
             }
           }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "bottom": true,
-              "initial": true,
-              "top": true
-            },
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {}
-          }
         }
       ],
       "transparent": true,
@@ -257,6 +324,22 @@
         "query": "SELECT name FROM experiments ORDER BY name;",
         "refresh": 2,
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": ["avg_iou"],
+          "value": ["avg_iou"]
+        },
+        "definition": "SELECT DISTINCT m.name\nFROM metrics m\nWHERE EXISTS (\n    SELECT 1\n    FROM runs r\n    JOIN experiments e ON r.experiment_id = e.id\n    WHERE r.id = m.run_id\n      AND e.name = '$experiment'\n)\nORDER BY m.name;\n",
+        "label": "Metrics",
+        "multi": true,
+        "name": "metrics",
+        "options": [],
+        "query": "SELECT DISTINCT m.name\nFROM metrics m\nWHERE EXISTS (\n    SELECT 1\n    FROM runs r\n    JOIN experiments e ON r.experiment_id = e.id\n    WHERE r.id = m.run_id\n      AND e.name = '$experiment'\n)\nORDER BY m.name;\n",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
@@ -268,5 +351,5 @@
   "timezone": "browser",
   "title": "Experiment Results",
   "uid": "mlflow-experiments-uid",
-  "version": 1
+  "version": 11
 }

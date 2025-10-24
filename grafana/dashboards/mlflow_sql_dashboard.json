@@ -1,0 +1,90 @@
+{
+  "id": null,
+  "uid": "mlflow-trends-uid",
+  "title": "MLflow - Parameter & Metric Trends",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Metric trends across runs",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PABD73A149C560C85"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT r.start_time AS \"time\", m.name AS metric, MAX(m.value) AS value\nFROM runs r\nJOIN metrics m ON m.run_id = r.id\nJOIN experiments e ON e.id = r.experiment_id\nWHERE e.name = '$experiment'\n  AND ($metric = '' OR m.name IN (${metric:csv}))\n  AND (array_length(${param_name:csv}, 1) IS NULL OR r.id IN (SELECT run_id FROM params WHERE name IN (${param_name:csv}) AND value IN (${param_value:csv})))\nGROUP BY r.start_time, m.name\nORDER BY r.start_time;"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "tooltip": { "mode": "single" } }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "experiment",
+        "label": "Experiment",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PABD73A149C560C85"
+        },
+        "query": "SELECT name FROM experiments ORDER BY name;",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "Haar Cascade Parameter Tuning",
+          "value": "Haar Cascade Parameter Tuning"
+        }
+      },
+      {
+        "type": "query",
+        "name": "metric",
+        "label": "Metric(s)",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PABD73A149C560C85"
+        },
+        "query": "SELECT DISTINCT name FROM metrics WHERE run_id IN (SELECT id FROM runs WHERE experiment_id = (SELECT id FROM experiments WHERE name = '$experiment')) ORDER BY name;",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "type": "query",
+        "name": "param_name",
+        "label": "Parameter name(s)",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PABD73A149C560C85"
+        },
+        "query": "SELECT DISTINCT name FROM params WHERE run_id IN (SELECT id FROM runs WHERE experiment_id = (SELECT id FROM experiments WHERE name = '$experiment')) ORDER BY name;",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "type": "query",
+        "name": "param_value",
+        "label": "Parameter value(s)",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PABD73A149C560C85"
+        },
+        "query": "SELECT DISTINCT value FROM params WHERE name IN (${param_name:csv}) AND run_id IN (SELECT id FROM runs WHERE experiment_id = (SELECT id FROM experiments WHERE name = '$experiment')) ORDER BY value;",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
+      }
+    ]
+  },
+  "time": { "from": "now-30d", "to": "now" }
+}

@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -30,55 +30,6 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
           }
         },
         "overrides": [
@@ -88,15 +39,7 @@
               "id": "byNames",
               "options": {
                 "mode": "exclude",
-                "names": [
-                  "avg_iou",
-                  "recall",
-                  "precision",
-                  "avg_bounding_accuracy_drop",
-                  "avg_bounding_accuracy",
-                  "avg_accuracy_drop",
-                  "avg_accuracy"
-                ],
+                "names": ["precision", "recall", "f1", "avg_iou"],
                 "prefix": "All except:",
                 "readOnly": true
               }
@@ -172,6 +115,120 @@
             "rowField": "run_id",
             "valueField": "value"
           }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "initial",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "precision"
+                }
+              },
+              "operator": "*",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "recall"
+                }
+              }
+            },
+            "cumulative": {
+              "field": "precision",
+              "reducer": "mean"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "top",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "initial"
+                }
+              },
+              "operator": "*",
+              "right": {
+                "fixed": "2"
+              }
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "bottom",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "precision"
+                }
+              },
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "recall"
+                }
+              }
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "f1",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "top"
+                }
+              },
+              "operator": "/",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "bottom"
+                }
+              }
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "bottom": true,
+              "initial": true,
+              "top": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
         }
       ],
       "transparent": true,
@@ -193,6 +250,7 @@
           "type": "grafana-postgresql-datasource",
           "uid": "PABD73A149C560C85"
         },
+        "definition": "SELECT name FROM experiments ORDER BY name;",
         "includeAll": false,
         "label": "Experiment",
         "name": "experiment",
@@ -210,5 +268,5 @@
   "timezone": "browser",
   "title": "Experiment Results",
   "uid": "mlflow-experiments-uid",
-  "version": 4
+  "version": 1
 }

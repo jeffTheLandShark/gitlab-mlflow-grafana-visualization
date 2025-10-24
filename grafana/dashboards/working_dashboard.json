@@ -136,8 +136,9 @@
         {
           "editorMode": "code",
           "format": "table",
+          "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT r.id AS run_id, e.name as experiment\nFROM runs r\nINNER JOIN experiments e ON e.id = r.experiment_id\nORDER BY r.id",
+          "rawSql": "SELECT DISTINCT r.id AS run_id, e.name as experiment\nFROM runs r\nINNER JOIN experiments e ON e.id = r.experiment_id\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -167,8 +168,38 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT m.run_id as run_id, m.name AS metric, m.value AS value\r\nFROM metrics m\r\nWHERE m.name IN ($metrics)\r\nORDER BY m.run_id",
+          "rawSql": "SELECT DISTINCT m.run_id as run_id, m.name AS metric, m.value AS value\r\nFROM metrics m\r\nWHERE m.name IN ($metrics)\r\n",
           "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "mlflow",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PABD73A149C560C85"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT p.run_id as run_id, p.name as hyperparam, p.value as setting\r\nFROM params p\r\nWHERE (p.name || ':' || p.value) IN ($param)",
+          "refId": "C",
           "sql": {
             "columns": [
               {
@@ -194,7 +225,7 @@
           "id": "joinByField",
           "options": {
             "byField": "run_id",
-            "mode": "outerTabular"
+            "mode": "inner"
           }
         },
         {
@@ -332,6 +363,17 @@
               "pattern": "/^(?!grafana).*/"
             }
           }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "run_id\\metric"
+              }
+            ]
+          }
         }
       ],
       "transparent": true,
@@ -352,7 +394,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": false,
+            "filterable": true,
             "footer": {
               "reducers": []
             },
@@ -435,14 +477,9 @@
       "id": 2,
       "options": {
         "cellHeight": "sm",
-        "enablePagination": true,
+        "enablePagination": false,
         "showHeader": true,
-        "sortBy": [
-          {
-            "desc": false,
-            "displayName": "run_id\\hyperparam"
-          }
-        ]
+        "sortBy": []
       },
       "pluginVersion": "12.2.0",
       "targets": [
@@ -580,6 +617,19 @@
         "refresh": 1,
         "regex": "",
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "definition": "SELECT\n  -- Display text: pretty for dropdown\n  p.name || ' = ' || p.value AS __text,\n  -- Internal value: safe for filtering (param_name and value combined)\n  p.name || ':' || p.value AS __value\nFROM params p\nJOIN runs r ON p.run_id = r.id\nJOIN experiments e ON r.experiment_id = e.id\nWHERE e.name = '$experiment'\nORDER BY p.name, p.value;\n",
+        "includeAll": true,
+        "label": "Hyperparameters",
+        "multi": true,
+        "name": "param",
+        "options": [],
+        "query": "SELECT\n  -- Display text: pretty for dropdown\n  p.name || ' = ' || p.value AS __text,\n  -- Internal value: safe for filtering (param_name and value combined)\n  p.name || ':' || p.value AS __value\nFROM params p\nJOIN runs r ON p.run_id = r.id\nJOIN experiments e ON r.experiment_id = e.id\nWHERE e.name = '$experiment'\nORDER BY p.name, p.value;\n",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
@@ -591,5 +641,5 @@
   "timezone": "browser",
   "title": "Experiment Results",
   "uid": "mlflow-experiments-uid",
-  "version": 12
+  "version": 13
 }

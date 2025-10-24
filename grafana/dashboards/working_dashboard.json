@@ -80,11 +80,40 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "run_id\\metric",
+                  "precision",
+                  "avg_iou",
+                  "recall",
+                  "f1 score"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
+        "h": 11,
+        "w": 16,
         "x": 0,
         "y": 0
       },
@@ -103,7 +132,6 @@
         }
       },
       "pluginVersion": "12.2.0",
-      "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
@@ -139,7 +167,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT m.run_id as run_id, m.name AS metric, m.value AS value\r\nFROM metrics m\r\nORDER BY m.run_id",
+          "rawSql": "SELECT DISTINCT m.run_id as run_id, m.name AS metric, m.value AS value\r\nFROM metrics m\r\nWHERE m.name IN ($metrics)\r\nORDER BY m.run_id",
           "refId": "B",
           "sql": {
             "columns": [
@@ -196,10 +224,9 @@
           }
         },
         {
-          "disabled": true,
           "id": "calculateField",
           "options": {
-            "alias": "initial",
+            "alias": "grafana_initial",
             "binary": {
               "left": {
                 "matcher": {
@@ -229,29 +256,7 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "top",
-            "binary": {
-              "left": {
-                "matcher": {
-                  "id": "byName",
-                  "options": "initial"
-                }
-              },
-              "operator": "*",
-              "right": {
-                "fixed": "2"
-              }
-            },
-            "mode": "binary",
-            "reduce": {
-              "reducer": "sum"
-            }
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "bottom",
+            "alias": "grafana_bottom",
             "binary": {
               "left": {
                 "matcher": {
@@ -275,20 +280,17 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "f1",
+            "alias": "grafana_top",
             "binary": {
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "top"
+                  "options": "grafana_initial"
                 }
               },
-              "operator": "/",
+              "operator": "*",
               "right": {
-                "matcher": {
-                  "id": "byName",
-                  "options": "bottom"
-                }
+                "fixed": "2"
               }
             },
             "mode": "binary",
@@ -296,10 +298,247 @@
               "reducer": "sum"
             }
           }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "f1 score",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "grafana_top"
+                }
+              },
+              "operator": "/",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "grafana_bottom"
+                }
+              }
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "/^(?!grafana).*/"
+            }
+          }
         }
       ],
       "transparent": true,
       "type": "trend"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PABD73A149C560C85"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false,
+            "wrapHeaderText": true,
+            "wrapText": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "scaleFactor"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 92
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minNeighbors"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 108
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "run_id\\hyperparam"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 45
+              },
+              {
+                "id": "displayName",
+                "value": "Run"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "minSize"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 66
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "enablePagination": true,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "run_id\\hyperparam"
+          }
+        ]
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT r.id AS run_id, e.name as experiment\nFROM runs r\nINNER JOIN experiments e ON e.id = r.experiment_id\nORDER BY r.id",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "mlflow",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PABD73A149C560C85"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT p.run_id as run_id, p.name as hyperparam, p.value as setting\r\nFROM params p\r\nORDER BY p.run_id",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Run Hyperparameters",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "run_id",
+            "mode": "outerTabular"
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "${experiment}"
+                  }
+                },
+                "fieldName": "experiment"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "hyperparam",
+            "rowField": "run_id",
+            "valueField": "setting"
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
     }
   ],
   "preload": false,
@@ -332,6 +571,7 @@
           "value": ["avg_iou"]
         },
         "definition": "SELECT DISTINCT m.name\nFROM metrics m\nWHERE EXISTS (\n    SELECT 1\n    FROM runs r\n    JOIN experiments e ON r.experiment_id = e.id\n    WHERE r.id = m.run_id\n      AND e.name = '$experiment'\n)\nORDER BY m.name;\n",
+        "includeAll": true,
         "label": "Metrics",
         "multi": true,
         "name": "metrics",
@@ -351,5 +591,5 @@
   "timezone": "browser",
   "title": "Experiment Results",
   "uid": "mlflow-experiments-uid",
-  "version": 11
+  "version": 12
 }

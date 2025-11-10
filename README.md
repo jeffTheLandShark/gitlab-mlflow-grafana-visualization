@@ -69,11 +69,13 @@ Once services start, you can go to http://localhost:3000 to access the Grafana i
 
 Grafana is pre-provisioned from the files in `grafana/provisioning` and `grafana/dashboards`.
 
-- `experiment_dashboard.json` — a dashboard designed to work with exported MLflow metrics stored in SQL.
+Currently, I have one dashboard, `mlflow_sql_dashboard.json`, which is designed to work with exported MLflow metrics stored in SQL. 
 
-If you want to add or modify dashboards, add the JSON file to `grafana/dashboards`. Any dashboards placed in that folder will be automatically picked up by Grafana. You can make changes to the JSON files directly and Grafana will update them while running.
+![dasboard_screenshot](experiment_dashboard.png)
 
-You can also edit dashboards through the Grafana UI directly. Be aware that changes made through the UI will not persist if the container is removed and re-created, so consider exporting modified dashboards from the UI back to JSON and saving them in the `grafana/dashboards` folder.
+If you want to add or modify dashboards, add the JSON file to `grafana/dashboards`. Any dashboards placed in that folder will be automatically picked up by Grafana. You can make changes to the JSON directly and Grafana will update them while running.
+
+You can also edit dashboards through the Grafana UI. Be aware that changes made through the UI will not persist if the container is removed and re-created, so consider exporting modified dashboards from the UI back to JSON and saving them in the `grafana/dashboards` folder.
 
 ## Exporter Details
 

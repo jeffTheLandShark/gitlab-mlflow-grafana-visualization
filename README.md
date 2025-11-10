@@ -69,7 +69,7 @@ Once services start, you can go to http://localhost:3000 to access the Grafana i
 
 Grafana is pre-provisioned from the files in `grafana/provisioning` and `grafana/dashboards`.
 
-Currently, I have one dashboard, `mlflow_sql_dashboard.json`, which is designed to work with exported MLflow metrics stored in SQL. 
+Currently, I have one dashboard, `experiment_dashboard.json`, which is designed to work with exported MLflow metrics stored in SQL. 
 
 ![dasboard_screenshot](experiment_dashboard.png)
 
